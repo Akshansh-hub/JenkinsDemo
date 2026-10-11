@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 public class Controller
 {
+
     @GetMapping("/add")
     public int add(@RequestParam int a, @RequestParam int b) {
         return a + b;
