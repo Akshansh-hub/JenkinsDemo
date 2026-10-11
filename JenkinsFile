@@ -1,0 +1,112 @@
+// pipeline
+// {
+//     agent any
+//
+//     options{
+//        skipDefaultCheckout(true)
+//     }
+//
+//     stages{
+//
+//         stage('Checkout'){
+//
+//             steps{
+//              checkout scm
+//             }
+//         }
+//         stage('Tests'){
+//
+//             steps{
+//
+//                 sh './mvnw -B test'
+//             }
+//             post
+//             {
+//                always
+//                {
+//                   junit 'target/surefire-reports/*.xml'
+//                }
+//             }
+//         }
+//
+//         stage('package')
+//         {
+//            steps
+//            {
+//              sh './mvnw -B -DskipTests package'
+//
+//              archiveArtifacts 'target/*.jar'
+//            }
+//         }
+//
+//         stage('Deploy')
+//         {
+//             steps{
+//
+//                 sh ```
+//
+//             }
+//         }
+//
+//
+//
+//     }
+//}
+
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn -B test'
+            }
+            post {
+                always {
+                    junit testResults: 'target/surefire-reports/*.xml',
+                          allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn -B -DskipTests package'
+                archiveArtifacts artifacts: 'target/*.jar',
+                                 fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                    set -eu
+
+                    JAR=$(find target -maxdepth 1 -type f \
+                        -name '*.jar' ! -name '*.original' \
+                        | head -n 1)
+
+                    if [ -z "$JAR" ]; then
+                        echo "Executable JAR not found"
+                        exit 1
+                    fi
+
+                    mkdir -p /opt/cicd-demo/spring/releases
+                    cp "$JAR" /opt/cicd-demo/spring/releases/app.jar
+
+                    echo "JAR deployed successfully"
+                '''
+            }
+        }
+    }
+}
